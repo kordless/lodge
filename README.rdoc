@@ -1,0 +1,28 @@
+= Lodge
+
+Lodge is a HTTP to syslog proxy written in Node.js.
+
+Lodge allows you to log to your syslog server by doing web POSTs from various HTTP enabled clients.  Here's a quick example of logging to Lodge from curl:
+
+   curl -d "127.0.0.1 - there's no place like home" https://localhost/inputs/d00dadc0ffee
+
+To run Lodge, make sure you have Node.js installed and have checked out the Lodge project to your syslog box.  You start Lodge like this:
+
+   node lodge.js
+
+By default Lodge forwards TCP based syslog data to the local machine on port 514.  By default, most syslog servers will not be configured to take TCP streams. You'll probably need fiddle with your syslog server a bit to get it working.  NOTE: In thory, Node.js can do UDP datagrams.   That means Lodge could probably be reworked slightly to support sending to an UDP based syslog server.
+
+If you are running Syslog-NG, your configuration will look a bit like this:
+
+   source s_lodge {
+        tcp(ip(0.0.0.0) port(514) max-connections(300));
+   };
+   destination df_lodge {
+        file("/var/log/lodge.log"); 
+   };
+   log {
+        source(s_lodge);
+        destination(df_lodge);
+   };
+
+Use the curl line above to test your setup and then tail the lodge.log logfile in /var/log and see if it pops out!
