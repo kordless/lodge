@@ -4,7 +4,7 @@ Lodge is a HTTP to syslog proxy written in Node.js.
 
 Lodge allows you to log to your syslog server by doing web POSTs from various HTTP enabled clients.  Here's a quick example of logging to Lodge from curl:
 
-   curl -d "127.0.0.1 - there's no place like home" https://localhost/inputs/d00dadc0ffee
+   curl -d "127.0.0.1 - there's no place like home" https://localhost:8080/inputs/d00dadc0ffee
 
 To run Lodge, make sure you have Node.js installed and have checked out the Lodge project to your syslog box.  You start Lodge like this:
 
