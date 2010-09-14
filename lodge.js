@@ -3,9 +3,13 @@ var sys = require("sys"),
     http = require("http"),
     net = require("net"),
     url = require("url");
+    dgram = require('dgram');
 
 // network objects
 var syslogclient;
+
+// TCP or UDP, we use a fall back approach and prefer TCP first and then UDP
+var udp = false;
 
 // log to local console 
 var log = function(content) {
@@ -17,8 +21,8 @@ var EventEmitter = require('events').EventEmitter;
 var syslogstart = new EventEmitter();
 syslogstart.addListener('start', function() {
     if (syslogclient === undefined || syslogclient.readyState != "open") { 
-       syslogclient = net.createConnection(514, host='127.0.0.1');
-       log("notice: starting connection to syslog server");
+	       syslogclient = net.createConnection(514, host='127.0.0.1');
+       	       log("notice: starting connection to syslog server");
     } else {
        log("notice: syslog server connection already established");
     }
@@ -27,10 +31,15 @@ syslogstart.addListener('start', function() {
 });
 
 // open the tcp connection to the syslog server
-syslogstart.emit('start');
+ syslogstart.emit('start');
 
 process.addListener("uncaughtException", function (err) {
     log("error: caught an exception - " + err);
+    if(err.errno === process.ECONNREFUSED){
+		log("Will fall back to utilize the udp socket");
+		udp = true;	
+    }
+
     if (err.name === "AssertionError") throw err;
     if (++exception_count == 4) process.exit(0);
 });
@@ -39,15 +48,31 @@ process.addListener("uncaughtException", function (err) {
 var forward_event = function(eventstamp, remoteip, content) {
     // craft header
     var header = eventstamp+" "+remoteip+" "+content+"\n";
-    if (syslogclient.readyState === "open") {
-	    // log("writing to syslog server: " + header.slice(0,80) + "...");
-        syslogclient.write(header);
-    } else {
-        // try to restart the connection, but tell the client to go away
-	log("notice: issuing syslog server restart");
-        syslogstart.emit('start');
-        return -1;
-    }
+   
+    // Check if we are not using UDP 
+    if(!udp){
+	    if (syslogclient.readyState === "open") {
+		    // log("writing to syslog server: " + header.slice(0,80) + "...");
+		syslogclient.write(header);
+	    } else {
+		// try to restart the connection, but tell the client to go away
+		log("notice: issuing syslog server restart");
+		syslogstart.emit('start');
+		return -1;
+	    }
+    }	    
+    else{
+    	var client = dgram.createSocket("udp4");
+	var message = new Buffer(header);
+    	client.send(message, 0, message.length, 514,"127.0.0.1",
+		function (err, bytes) {
+			if (err) {
+				throw err;
+			}
+		//	log("Wrote " + bytes + " bytes to UDP socket.");
+			return;
+		});
+	}
 };
 
 // key hash store
