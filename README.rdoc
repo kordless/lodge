@@ -10,7 +10,8 @@ To run Lodge, make sure you have Node.js installed and have checked out the Lodg
 
    node lodge.js
 
-Lodge forwards TCP based syslog data to the local machine on port 514.  By default, most syslog servers will not be configured to take TCP streams on port 514. You'll probably need fiddle with your syslog server a bit to get it working.  
+
+By default, Lodge will try to forward syslog data to the local machine via TCP port 514.  Most syslog servers will not be configured to take TCP streams on port 514, so you'll probably need fiddle with your syslog server a bit to support inbound TCP connections.  
 
 If you are running Syslog-NG, your configuration will look a bit like this:
 
@@ -25,6 +26,6 @@ If you are running Syslog-NG, your configuration will look a bit like this:
         destination(df_lodge);
    };
 
-Use the curl line above to test your setup and then tail the lodge.log logfile in /var/log and see if it pops out!
+Note: Lodge will fall back to UDP port 514 if your syslog server isn't setup to accept logs on TCP port 514. Some data loss can occur due to UDP's non-reliable nature.  
 
-In thory, Node.js can do UDP datagrams which also means Lodge could probably be reworked slightly to support sending to an UDP based syslog server listening on port 514.  Food for thought.
+Once you are done configuring your syslog server, use the curl line above and then the lodge.log logfile in /var/log/ to verify it's working correctly.
