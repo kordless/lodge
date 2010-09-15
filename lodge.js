@@ -33,11 +33,12 @@ syslogstart.addListener('start', function() {
 // open the tcp connection to the syslog server
  syslogstart.emit('start');
 
+// handle exceptions for great udp justice
 process.addListener("uncaughtException", function (err) {
     log("error: caught an exception - " + err);
     if(err.errno === process.ECONNREFUSED){
-		log("Will fall back to utilize the udp socket");
-		udp = true;	
+       log("Will fall back to utilize the udp socket");
+       udp = true;
     }
 
     if (err.name === "AssertionError") throw err;
@@ -50,29 +51,30 @@ var forward_event = function(eventstamp, remoteip, content) {
     var header = eventstamp+" "+remoteip+" "+content+"\n";
    
     // Check if we are not using UDP 
-    if(!udp){
-	    if (syslogclient.readyState === "open") {
-		    // log("writing to syslog server: " + header.slice(0,80) + "...");
-		syslogclient.write(header);
-	    } else {
-		// try to restart the connection, but tell the client to go away
-		log("notice: issuing syslog server restart");
-		syslogstart.emit('start');
-		return -1;
-	    }
+    if (!udp) {
+        if (syslogclient.readyState === "open") {
+            // log("writing to syslog server: " + header.slice(0,80) + "...");
+            syslogclient.write(header);
+        } else {
+            // try to restart the connection, but tell the client to go away
+            log("notice: issuing syslog server restart");
+            syslogstart.emit('start');
+            return -1;
+        }
     }	    
-    else{
-    	var client = dgram.createSocket("udp4");
-	var message = new Buffer(header);
-    	client.send(message, 0, message.length, 514,"127.0.0.1",
-		function (err, bytes) {
-			if (err) {
-				throw err;
-			}
-		//	log("Wrote " + bytes + " bytes to UDP socket.");
-			return;
-		});
-	}
+    else {
+        var client = dgram.createSocket("udp4");
+        var message = new Buffer(header);
+        client.send(message, 0, message.length, 514,"127.0.0.1",
+            function (err, bytes) {
+                if (err) {
+                    throw err;
+                }
+                // log("Wrote " + bytes + " bytes to UDP socket.");
+                return;
+            }
+	);
+   }
 };
 
 // key hash store
