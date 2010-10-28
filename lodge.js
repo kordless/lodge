@@ -4,6 +4,8 @@ var sys = require("sys"),
     net = require("net"),
     url = require("url");
     dgram = require('dgram');
+    crypto = require('crypto');
+    fs = require('fs');
 
 // network objects
 var syslogclient;
@@ -82,7 +84,7 @@ var hashes = {}
 hashes['d00dadc0ffee'] = {'valid': 'true'};
 
 // server object
-lodge = http.createServer(function (request, response) {
+var client_handler = function (request, response) {
     var content = "";
     var remoteip = request.connection.remoteAddress;
 
@@ -161,4 +163,25 @@ lodge = http.createServer(function (request, response) {
             }
         }
     });
-}).listen(8080);
+}
+
+// Start listening as HTTP server
+lodge = http.createServer(client_handler).listen(8080);
+
+var privateKey,certificate;
+
+// We might not be provided with proper files
+try {
+	privateKey = fs.readFileSync('privatekey.pem').toString();
+	certificate = fs.readFileSync('certificate.pem').toString();
+}catch(e) {
+	log("Improper/Non-existant credential files for starting HTTPS server");
+	return;
+}
+
+var credentials = crypto.createCredentials({key: privateKey, cert: certificate});
+
+// Start listening as HTTPS server
+var server = http.createServer(client_handler);
+server.setSecure(credentials);
+server.listen(8081);
